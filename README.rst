@@ -2,7 +2,7 @@
 
 Minids (Minimal Viable Identifiers) are identifiers that are sufficiently simple to make creation and use trivial, while still having enough substance to make data easily findable, accessible, interoperable, and reusable (FAIR).
 
-This repository contains the minid server. Minid client code is avaialble at https://github.com/fair-research/minid.
+This repository contains the minid server. Minid client code is available at https://github.com/fair-research/minid.
 
 
 Installation

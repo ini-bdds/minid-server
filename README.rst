@@ -45,7 +45,9 @@ Here is an example configuration file that uses a local SQLite database and the 
       HOSTNAME = "http://localhost:5000/minid"
       PORT = 5000
       LANDING_PAGE = "http://localhost:5000/minid/landingpage"
-      GLOBUS_AUTH_ENABLED = False
+
+      GLOBUS_CLIENT_ID = "a5cdede9-567f-4ae5-aba5-cb997d08693a"
+      GLOBUS_CLIENT_SECRET = ""
 
       EZID_SERVER = "https://ezid.cdlib.org"
       EZID_SCHEME = "ark:/"
@@ -63,3 +65,19 @@ Here is an example configuration file that uses a local SQLite database and the 
       AWS_ACCESS_KEY_ID = ""
       AWS_SECRET_ACCESS_KEY = ""
       AWS_EMAIL_SENDER = ""
+
+
+Globus Auth
+-----------
+
+The Minid Server needs to register two items:
+
+* A Globus App at https://developers.globus.org/
+* A Resource Server Scope at https://docs.globus.org/api/auth/reference/#create_scope
+
+Clients can then add the following scope to their login flow:
+
+.. code-block:: python
+
+  scopes = ["https://auth.globus.org/scopes/a5cdede9-567f-4ae5-aba5-cb997d08693a/minid"]
+

@@ -4,7 +4,8 @@ import uuid
 import datetime
 from providers import EZIDClient
 from app import app, db, minid_email
-from api.utils import AuthorizationException, validate_globus_user
+from api.utils import (AuthorizationException, validate_globus_user,
+                       GLOBUS_AUTH_ENABLED)
 
 # When using the test capabilities we append TEST to the checksum to avoid 
 # colusion with the real namespace
@@ -42,15 +43,26 @@ def create_ark(creator, title, created, test):
 
 
 def find_user(email, code):
+    """
+    Authorize a user in order by:
+        1. Check for matching email+code in database
+        2. Valid Globus Auth header on the current request
+    If both fail, a 403 AuthorizationException is raised.
+    :param email: A users email
+    :param code:  A minid code
+    :return: A user object
+    """
 
-    user = Miniduser.query.filter_by(email=email, code=code).first()
-    if user:
-        return user
-    else:
-        print('User %s with code %s does not exist.' % (email, code))
+    if code:
+        user = Miniduser.query.filter_by(email=email, code=code).first()
+        if user:
+            return user
+        else:
+            print('User %s with code %s does not exist.' % (email, code))
 
     globus_auth_header = request.headers.get('Authorization')
-    if app.config['GLOBUS_AUTH_ENABLED'] and globus_auth_header:
+    if GLOBUS_AUTH_ENABLED and globus_auth_header:
+        print('Auth header found and Globus Auth is Enabled')
 
         validate_globus_user(email, globus_auth_header)
         user = Miniduser.query.filter_by(email=email).first()
@@ -249,7 +261,7 @@ def create_entity():
         content_key = request.json["content_key"]
 
     if "checksum_function" in request.json:
-	checksum_function = request.json["checksum_function"]
+        checksum_function = request.json["checksum_function"]
 
     test = False
     if "test" in request.json:
@@ -312,7 +324,7 @@ def register_user():
     orcid = request.json.get("orcid")
 
     globus_auth_header = request.headers.get('Authorization')
-    if globus_auth_header and not app.config['GLOBUS_AUTH_ENABLED']:
+    if globus_auth_header and not GLOBUS_AUTH_ENABLED:
         print('User tried to register with Globus, but it is not enabled.')
         abort(400)
     elif globus_auth_header:

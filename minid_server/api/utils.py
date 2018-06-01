@@ -10,16 +10,16 @@ except ImportError:
 
 def validate_globus_user(email, authorization_header):
 
-    type, code = authorization_header.split()
-    if str(type) != 'Bearer':
-        raise AuthorizationException('Only Bearer tokens are supported '
+    scheme, token = authorization_header.split()
+    if str(scheme) != 'Bearer':
+        raise AuthorizationException('Only Bearer token scheme is supported '
                                      'for Globus Auth',
                                      user=email, type='InvalidToken')
     client = globus_sdk.ConfidentialAppAuthClient(
         app.config.get('GLOBUS_CLIENT_ID'),
         app.config.get('GLOBUS_CLIENT_SECRET')
     )
-    info = client.oauth2_token_introspect(code, 'identity_set')
+    info = client.oauth2_token_introspect(token, 'identity_set')
     if info.data.get('active') is False:
         raise AuthorizationException('Expired or invalid Globus Auth '
                                      'code.', user=email,
@@ -35,7 +35,6 @@ def validate_globus_user(email, authorization_header):
                                      'globus.org/app/account' % email,
                                      user=email,
                                      type='InvalidIdentity')
-
 
 
 class AuthorizationException(Exception):

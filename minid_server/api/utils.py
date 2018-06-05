@@ -25,7 +25,7 @@ def validate_globus_user(email, authorization_header):
                                      'code.', user=email,
                                      type='AuthorizationFailed')
     ids = client.get_identities(ids=info.data['identity_set'])
-    linked_emails = [str(u_id['username'])
+    linked_emails = [str(u_id['email'])
                      for u_id in ids['identities']]
     if email not in linked_emails:
         # We're assuming the user just needs to link their id. It's

@@ -1,39 +1,40 @@
+from app import app
+
+try:
+    import globus_sdk
+    GLOBUS_AUTH_ENABLED = bool(app.config.get('GLOBUS_CLIENT_ID') and
+                               app.config.get('GLOBUS_CLIENT_SECRET'))
+except ImportError:
+    GLOBUS_AUTH_ENABLED = False
 
 
 def validate_globus_user(email, authorization_header):
-    try:
-        type, code = authorization_header.split()
-        if str(type) != 'Bearer':
-            raise AuthorizationException('Only Bearer tokens are supported '
-                                         'for Globus Auth',
-                                         user=email, type='InvalidToken')
 
-        import globus_sdk  # noqa
-        ac = globus_sdk.AuthClient(
-            authorizer=globus_sdk.AccessTokenAuthorizer(code))
-
-        try:
-            idents = ac.get_identities(email).get('identities')
-            if not idents:
-                raise AuthorizationException('User needs to link their email '
-                                             '%s to their Globus identity: '
-                                             'globus.org/app/account' % email,
-                                             user=email,
-                                             type='InvalidIdentity')
-        except globus_sdk.exc.AuthAPIError:
-            raise AuthorizationException('Expired or invalid Globus Auth '
-                                         'code.', user=email,
-                                         type='AuthorizationFailed')
-    except (ValueError, AttributeError):
-        raise AuthorizationException('Invalid Globus Authorization Header.',
+    scheme, token = authorization_header.split()
+    if str(scheme) != 'Bearer':
+        raise AuthorizationException('Only Bearer token scheme is supported '
+                                     'for Globus Auth',
+                                     user=email, type='InvalidToken')
+    client = globus_sdk.ConfidentialAppAuthClient(
+        app.config.get('GLOBUS_CLIENT_ID'),
+        app.config.get('GLOBUS_CLIENT_SECRET')
+    )
+    info = client.oauth2_token_introspect(token, 'identity_set')
+    if info.data.get('active') is False:
+        raise AuthorizationException('Expired or invalid Globus Auth '
+                                     'code.', user=email,
+                                     type='AuthorizationFailed')
+    ids = client.get_identities(ids=info.data['identity_set'])
+    linked_emails = [str(u_id['email'])
+                     for u_id in ids['identities']]
+    if email not in linked_emails:
+        # We're assuming the user just needs to link their id. It's
+        # possible they're an impersonator and we should raise an error
+        raise AuthorizationException('User needs to link their email '
+                                     '%s to their Globus identity: '
+                                     'globus.org/app/account' % email,
                                      user=email,
-                                     type='InvalidHeader')
-    except ImportError:
-        print('Please install Globus: "pip install globus_sdk"')
-        raise AuthorizationException('Server is misconfigured to use '
-                                     'Globus Auth, please notify '
-                                     'the administrator. Sorry.', user=email,
-                                     code=500, type='ServerError')
+                                     type='InvalidIdentity')
 
 
 class AuthorizationException(Exception):

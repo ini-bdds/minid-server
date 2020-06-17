@@ -302,14 +302,14 @@ def register_user():
     if not request.json:
         print("Request is not JSON")
         abort(400)
-
-    if not 'name' in request.json or not 'email' in request.json:
-        print("Malformed request missing name or email %s" % request.json)
-        abort(400)
                                             
-    email = request.json["email"]
-    name = request.json["name"]
+    email = request.json.get("email")
+    name = request.json.get("name")
     orcid = request.json.get("orcid")
+
+    if not name or not email:
+        return jsonify({'message': 'Name or Email not specified', 'type':
+                        'NoNameOrEmail'}), 400
 
     globus_auth_header = request.headers.get('Authorization')
     if globus_auth_header and not app.config['GLOBUS_AUTH_ENABLED']:
@@ -323,12 +323,12 @@ def register_user():
         code = str(uuid.uuid4())
     print ("querying %s" %code)
     user = Miniduser.query.filter_by(email=email).first()
-    print("after")
-    if user is None: 
+    if user is None:
+        print('Registered new user "%s" with name "%s"' % (email, name))
         user = Miniduser(name, orcid, email, code)
         db.session.add(user)
     else: 
-        print("Updating existing user.")
+        print('Updating existing user "%s"' % email)
         user.name = name
         user.orcid = orcid
         user.code = code

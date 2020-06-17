@@ -317,11 +317,7 @@ def register_user():
         abort(400)
     elif globus_auth_header:
         validate_globus_user(email, globus_auth_header)
-        # No need to set a code if the user is using Globus
-        code = ''
-    else:
-        code = str(uuid.uuid4())
-    print ("querying %s" %code)
+    code = str(uuid.uuid4())
     user = Miniduser.query.filter_by(email=email).first()
     print("after")
     if user is None: 
